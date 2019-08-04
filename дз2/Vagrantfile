@@ -8,13 +8,13 @@ SCRIPT
 
 $script2 = <<-SCRIPT
 sudo -s &&
-mkdir /raid5
-mdadm --create /dev/md5 --level=5 --raid-devices=5 /dev/sdb /dev/sdc /dev/sdd /dev/sde /dev/sdf
+mkdir /raid6 &&
+mdadm --create /dev/md6 --level=6 --raid-devices=5 /dev/sdb /dev/sdc /dev/sdd /dev/sde /dev/sdf &&
+parted --script /dev/md6 mklabel gpt
 
 
-
-mkfs.ext4 /dev/md5
-mount /dev/md5 /raid5
+#mkfs.ext4 /dev/md6
+#mount /dev/md6 /raid6
 SCRIPT
 
 Vagrant.configure("2") do |config|

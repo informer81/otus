@@ -1,0 +1,16 @@
+[b24]
+b24.tdaksel.local ansible_ssh_host=192.168.1.230 ansible_ssh_user=root
+
+[elk]
+elk.tdaksel.local ansible_ssh_host=192.168.1.231 ansible_ssh_user=root
+
+[mtx]
+mtx.tdaksel.local ansible_ssh_host=192.168.1.243 ansible_ssh_user=root
+
+[opt]
+opt.tdaksel.local ansible_ssh_host=192.168.1.194 ansible_ssh_user=root
+
+[elk-client]
+opt.tdaksel.local ansible_ssh_host=192.168.1.194 ansible_ssh_user=root
+mtx.tdaksel.local ansible_ssh_host=192.168.1.243 ansible_ssh_user=root
+b24.tdaksel.local ansible_ssh_host=192.168.1.230 ansible_ssh_user=root

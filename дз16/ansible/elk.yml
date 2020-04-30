@@ -1,0 +1,76 @@
+---
+
+- hosts: elk
+
+  tasks:
+      - name: Install Java on {{ ansible_hostname }}
+        dnf:
+         name:
+          - java-11-openjdk-devel
+         state: latest
+
+      - name: Import key on {{ ansible_hostname }}
+        shell:
+          cmd: rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
+
+      - name: Copy repo ELK on {{ ansible_hostname }}
+        copy:
+         src: ./files/elk/server/elasticsearch.repo
+         dest: /etc/yum.repos.d/elasticsearch.repo
+         mode: '0644'
+
+      - name: Install elasticsearch on {{ ansible_hostname }}
+        dnf:
+         name:
+           - elasticsearch
+           - kibana
+           - logstash
+         state: latest
+
+      - name: Starting the elasticsearch on {{ ansible_hostname }}
+        service: name=elasticsearch state=started enabled=yes
+
+      - lineinfile:
+         path: /etc/kibana/kibana.yml
+         regexp: '^#server.host: "localhost"'
+         line: 'server.host: "0.0.0.0"'
+
+      - name: Starting the kibana on {{ ansible_hostname }}
+        service: name=kibana state=started enabled=yes
+
+      - name: Starting the logstash - logstash
+        service: name=logstash state=started enabled=yes
+
+      - name: Copy config logstash {{ ansible_hostname }}
+        copy:
+         src: "{{ item }}"
+         dest: /etc/logstash/conf.d/
+         mode: '0644'
+        with_fileglob:
+          - ./files/elk/server/*.conf
+        
+      - name: Starting the logstash {{ ansible_hostname }}
+        service: name=logstash state=restarted
+
+      - name: Firewall rules {{ ansible_hostname }}
+        firewalld:
+         port: "{{ item }}"
+         permanent: true
+         state: enabled
+        with_items:
+          - 5044/tcp
+          - 5044/udp
+          - 5601/tcp
+          - 9200/tcp
+
+      - name: Firewall rules service {{ ansible_hostname }}
+        firewalld:
+         service: "{{ item }}"
+         permanent: true
+         state: enabled
+        with_items:
+          - kibana
+          - elasticsearch
+
+      - name: Firewall deploy rules {{ ansible_hostname }}
+        shell: firewall-cmd --reload

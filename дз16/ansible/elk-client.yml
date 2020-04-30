@@ -1,0 +1,113 @@
+---
+
+- hosts: all
+
+  tasks:
+      - name: Import key CentOS
+        shell:
+          cmd: rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
+        when:
+          - ansible_facts['distribution'] == "CentOS"
+
+      - name: Import key Debian
+        shell:
+          cmd: wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+        when:
+          - ansible_facts['distribution'] == "Debian"
+
+      - name: Copy repo ELK
+        shell:
+          cmd: echo "deb https://artifacts.elastic.co/packages/7.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-7.x.list
+        when:
+          - ansible_facts['distribution'] == "Debian"
+
+      - name: Copy repo ELK
+        copy:
+         src: ./files/elk/server/elasticsearch.repo
+         dest: /etc/yum.repos.d/elasticsearch.repo
+         mode: '0644'
+        when:
+          - ansible_facts['distribution'] == "CentOS"
+
+      - name: Install filebeat  Centos8
+        dnf:
+         name:
+          - filebeat
+         state: latest
+        when:
+          - ansible_facts['distribution'] == "CentOS"
+          - ansible_distribution_major_version == '8'
+
+      - name: Install filebeat Centos7
+        yum:
+         name:
+          - filebeat
+         state: latest
+        when:
+          - ansible_facts['distribution'] == "CentOS"
+          - ansible_distribution_major_version == '7'
+
+      - name: Install filebeat Debian
+        apt:
+         name:
+          - filebeat
+         state: latest
+        when:
+          - ansible_facts['distribution'] == "Debian"
+
+      - name: Copy config filebeat backup
+        copy:
+         src: "{{ item }}"
+         dest: /etc/filebeat/
+         mode: '0644'
+        with_items:
+          - ./files/elk/backup/filebeat.yml
+        when: ansible_hostname == 'backup'
+
+      - name: Copy config filebeat
+        copy:
+         src: "{{ item }}"
+         dest: /etc/filebeat/
+         mode: '0644'
+        with_items:
+          - ./files/elk/reserv/filebeat.yml
+        when: ansible_hostname == 'reserv'
+
+      - name: Copy config filebeat mtx
+        copy:
+         src: "{{ item }}"
+         dest: /etc/filebeat/
+         mode: '0644'
+        with_items:
+          - ./files/elk/mtx/filebeat.yml
+        when: ansible_hostname == 'mtx'
+
+      - name: Copy config filebeat opt
+        copy:
+         src: "{{ item }}"
+         dest: /etc/filebeat/
+         mode: '0644'
+        with_items:
+          - ./files/elk/opt/filebeat.yml
+        when: ansible_hostname == 'hosting'
+
+      - name: Copy config filebeat files
+        copy:
+         src: "{{ item }}"
+         dest: /etc/filebeat/
+         mode: '0644'
+        with_items:
+          - ./files/elk/opt/filebeat.yml
+        when: ansible_hostname == 'data'
+
+      - name: Copy config filebeat files
+        copy:
+         src: "{{ item }}"
+         dest: /etc/filebeat/
+         mode: '0644'
+        with_items:
+          - ./files/elk/b24/filebeat.yml
+        when: ansible_hostname == 'b24'
+
+      - name: Starting the filebeat
+        service: name=filebeat state=started enabled=yes

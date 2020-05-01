@@ -11,7 +11,7 @@ $script2 = <<-SCRIPT
 sudo -s &&
 pvcreate /dev/sdb &&
 vgcreate vg_root /dev/sdb &&
-vcreate -n lv_root -l +100%FREE /dev/vg_root &&
+vgcreate -n lv_root -l +100%FREE /dev/vg_root &&
 mkfs.xfs /dev/vg_root/lv_root &&
 mount /dev/vg_root/lv_root /mnt
 SCRIPT

@@ -1,0 +1,44 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(2) do |config|
+  config.vm.box = "centos/7"
+  config.vm.box_version = "1905.1"
+
+  config.vm.provider "virtualbox" do |v|
+    v.memory = 768
+    v.cpus = 1
+  end
+
+  config.vm.define "b24.tdaksel.local" do |r1|
+    r1.vm.network "private_network", ip: "192.168.1.230"
+    r1.vm.hostname = "b24.tdaksel.local"
+  end
+
+  config.vm.define "elk.tdaksel.local" do |r2|
+    config.vm.box = "centos/8"
+    r2.vm.network "private_network", ip: "192.168.1.231"
+    r2.vm.hostname = "elk.tdaksel.local"
+  end
+  config.vm.define "mtx.tdaksel.local" do |r3|
+    r3.vm.network "private_network", ip: "192.168.1.243"
+    r3.vm.hostname = "mtx.tdaksel.local"
+  end
+
+  config.vm.define "opt.tdaksel.local" do |r4|
+    r4.vm.network "private_network", ip: "192.168.1.194"
+    r4.vm.hostname = "opt.tdaksel.local"
+  end
+
+  config.vm.provision "ansible" do |ansible|
+    ansible.verbose = "v"
+    ansible.playbook = "elk.yml"
+    ansible.become = "true"
+  end
+
+  config.vm.provision "ansible" do |ans2|
+    ans2.verbose = "v"
+    ans2.playbook = "elk-client.yml"
+    ans2.become = "true"
+  end
+end

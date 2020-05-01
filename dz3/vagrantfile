@@ -2,7 +2,7 @@
 # vi: set ft=ruby :
 
 $script = <<-SCRIPT
-sudo yum install epel-release mc -y &&
+sudo yum install epel-release mc  xfsdump -y &&
 sudo yum install mdadm iotop htop sysstat -y &&
 sudo yum upgrade -y
 SCRIPT
@@ -10,7 +10,10 @@ SCRIPT
 $script2 = <<-SCRIPT
 sudo -s &&
 pvcreate /dev/sdb &&
-vgcreate vg_root /dev/sdb
+vgcreate vg_root /dev/sdb &&
+vcreate -n lv_root -l +100%FREE /dev/vg_root &&
+mkfs.xfs /dev/vg_root/lv_root &&
+mount /dev/vg_root/lv_root /mnt
 SCRIPT
 
 Vagrant.configure(2) do |config|

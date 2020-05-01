@@ -17,6 +17,11 @@ Vagrant.configure(2) do |config|
     end
     v.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', file_to_disk]
 
+    file_to_disk = 'disk3.vdi'
+    unless File.exist?(file_to_disk)
+          v.customize ['createhd', '--filename', file_to_disk, '--size', 30 * 1024 ]
+    end
+    v.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 2, '--device', 0, '--type', 'hdd', '--medium', file_to_disk]
   end
   
 end

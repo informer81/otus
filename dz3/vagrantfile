@@ -9,6 +9,8 @@ SCRIPT
 
 $script2 = <<-SCRIPT
 sudo -s &&
+pvcreate /dev/sdb &&
+vgcreate vg_root /dev/sdb
 SCRIPT
 
 Vagrant.configure(2) do |config|

@@ -1,8 +1,20 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+$script = <<-SCRIPT
+sudo yum install epel-release mc -y &&
+sudo yum install mdadm iotop htop sysstat -y &&
+sudo yum upgrade -y
+SCRIPT
+
+$script2 = <<-SCRIPT
+sudo -s &&
+SCRIPT
+
 Vagrant.configure(2) do |config|
   config.vm.box = "centos/7"
+  config.vm.provision "shell", inline: $script
+  config.vm.provision "shell", inline: $script2
   config.vm.box_version = "1804.2"
 
   config.vm.provider "virtualbox" do |v|
@@ -26,5 +38,8 @@ Vagrant.configure(2) do |config|
   config.vm.define "testlvm" do |r1|
     r1.vm.hostname = "testlvm"
   end
+
+
+
   
 end

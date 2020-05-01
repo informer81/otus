@@ -8,8 +8,7 @@ Vagrant.configure(2) do |config|
   config.vm.provider "virtualbox" do |v|
     v.memory = 512
     v.cpus = 1
-    v.vm.hostname = "testlvm"
-      
+         
   file_to_disk = 'disk2.vdi'
     unless File.exist?(file_to_disk)
           v.customize ['createhd', '--filename', file_to_disk, '--size', 30 * 1024]
@@ -22,6 +21,10 @@ Vagrant.configure(2) do |config|
           v.customize ['createhd', '--filename', file_to_disk, '--size', 30 * 1024 ]
     end
     v.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 2, '--device', 0, '--type', 'hdd', '--medium', file_to_disk]
+  end
+    
+  config.vm.define "testlvm" do |r1|
+    r1.vm.hostname = "testlvm"
   end
   
 end

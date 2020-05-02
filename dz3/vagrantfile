@@ -2,18 +2,23 @@
 # vi: set ft=ruby :
 
 $script = <<-SCRIPT
-sudo yum install epel-release mc  xfsdump -y &&
+sudo yum install epel-release mc xfsdump -y &&
 sudo yum install mdadm iotop htop sysstat -y &&
-sudo yum upgrade -y
+yum ugrade -y
 SCRIPT
 
 $script2 = <<-SCRIPT
 sudo -s &&
-pvcreate /dev/sdb &&
+pvcreate /dev/sdb -f &&
 vgcreate vg_root /dev/sdb &&
-vgcreate -n lv_root -l +100%FREE /dev/vg_root &&
+lvcreate -n lv_root -l +100%FREE /dev/vg_root &&
 mkfs.xfs /dev/vg_root/lv_root &&
-mount /dev/vg_root/lv_root /mnt
+mount /dev/vg_root/lv_root /mnt &&
+xfsdump -J - /dev/VolGroup00/LogVol00 | xfsrestore -J - /mnt  &&
+for i in /proc/ /sys/ /dev/ /run/ /boot/; do mount --bind $i /mnt/$i; done &&
+chroot /mnt/ &&
+grub2-mkconfig -o /boot/grub2/grub.cfg &&
+cd /boot ; for i in `ls initramfs-*img`; do dracut -v $i `echo $i|sed "s/initramfs-//g; s/.img//g"` --force; done
 SCRIPT
 
 Vagrant.configure(2) do |config|
@@ -33,18 +38,10 @@ Vagrant.configure(2) do |config|
     end
     v.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', file_to_disk]
 
-    file_to_disk = 'disk3.vdi'
-    unless File.exist?(file_to_disk)
-          v.customize ['createhd', '--filename', file_to_disk, '--size', 30 * 1024 ]
-    end
-    v.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 2, '--device', 0, '--type', 'hdd', '--medium', file_to_disk]
   end
     
   config.vm.define "testlvm" do |r1|
     r1.vm.hostname = "testlvm"
   end
-
-
-
   
 end

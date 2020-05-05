@@ -1,3 +1,6 @@
 FROM alpine:latest
+RUN  apk upgrade -l && apk add nginx -l
+RUN echo "daemon off;" >> /etc/nginx/nginx.conf
 
-RUN apt update -y && apt upgrade -y
+EXPOSE 80
+CMD [ "nginx" ]

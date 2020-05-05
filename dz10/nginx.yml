@@ -2,6 +2,8 @@
 
 - hosts: all
   become: true
+  vars:
+    nginx_listen_port: 8080
 
   tasks:
     - name: Install epel-release
@@ -25,6 +27,13 @@
        - http
        - https
     
+    - name: nginx conf j2
+      template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+      notify:
+        - reload nginx
+
     - name: Firewall rules {{ ansible_hostname }}
       firewalld:
         port: "{{ item }}"
@@ -41,3 +50,7 @@
     
     - name: Firewall deploy rules
       shell: firewall-cmd --reload
+
+  handlers:
+    - name: reload nginx
+      service: name=nginx state=reloaded

@@ -1,0 +1,16 @@
+filebeat.inputs:
+- type: log
+  enabled: true
+  paths:
+    - /var/log/backup/*.log
+  fields:
+    type: reserv_server
+  fields_under_root: true
+  scan_frequency: 30s
+
+output.logstash:
+  hosts: ["192.168.1.231:5044"]
+xpack.monitoring:
+  enabled: true
+  elasticsearch:
+    hosts: ["http://192.168.1.231:9200"]

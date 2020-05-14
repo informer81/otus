@@ -1,0 +1,232 @@
+---
+
+- hosts: zabbix
+  vars:
+    nginx_port: "80"
+    nginx_server_name: "zabbix"
+
+  vars_files:
+    - ./files/zabbix/secrets.yml
+
+  tasks:
+   - name: Install epel-release
+     dnf:
+      name:
+       - epel-release
+      state: latest
+
+   - name: Copy repos webmin
+     copy:
+      src: ./files/webmin.repo
+      dest: /etc/yum.repos.d
+      mode: '0644'
+
+   - name: Copy repos zabbix
+     copy:
+      src: ./files/zabbix.repo
+      dest: /etc/yum.repos.d
+      mode: '0644'
+
+   - name: Copy repos zabbix
+     copy:
+      src: ./files/RPM-GPG-KEY-ZABBIX-A14FE591
+      dest: /etc/pki/rpm-gpg
+      mode: '0644'
+
+   - lineinfile:
+      path: /etc/yum.repos.d/CentOS-PowerTools.repo
+      regexp: '^enabled=0'
+      line: 'enabled=1'
+
+   - name: Import key
+     shell:
+      cmd: rpm --import http://www.webmin.com/jcameron-key.asc
+
+   - name: Update
+     dnf:
+      name: "*"
+      state: latest
+
+   - name: Install dop
+     dnf:
+      name:
+       - htop
+       - iotop
+       - sysstat
+       - glibc-langpack-ru
+       - git
+       - webmin
+       - mc
+       - wget
+       - atop
+       - iftop
+       - net-tools
+       - mutt
+       - rsync
+       - pigz
+       - bzip2
+       - smartmontools
+       - ipset
+       - atop
+       - cifs-utils
+       - mdadm
+       - ncdu
+       - ftp
+       - zip
+       - drpm
+       - nginx
+       - python3-pip
+       - python3-PyMySQL
+       - mariadb-server
+       - zabbix-server-mysql
+       - zabbix-web-mysql
+       - zabbix-nginx-conf
+       - zabbix-agent
+      state: latest
+
+   - lineinfile:
+      path: /etc/zabbix/zabbix_agentd.conf
+      line: '###IOSTAT Monitoring'
+      create: yes
+
+   - lineinfile:
+      path: /etc/zabbix/zabbix_agentd.conf
+      line: UserParameter=iostat[*],/etc/zabbix/scripts/iostat.sh "none" "$1" "$2"
+      create: yes
+
+   - name: Create Folder scripts
+     file:
+      path: /etc/zabbix/scripts
+      owner: zabbix
+      group: zabbix
+      mode: '0750'
+      state: directory
+
+   - name: Copy file iostat for Zabbix
+     copy:
+      src: ./files/iostat.sh
+      dest: /etc/zabbix/scripts/iostat.sh
+      owner: zabbix
+      group: zabbix
+      mode: '0550'
+
+   - name: Starting the Zabbix Agent
+     service: name=zabbix-agent state=started enabled=yes
+
+   - name: Starting the Webmin
+     shell:
+      cmd: chkconfig webmin on
+
+   - name: Firewall rules 10000 port
+     firewalld:
+      port: 10000/tcp
+      permanent: true
+      state: enabled
+
+   - name: Firewall rules service
+     firewalld:
+      service: "{{ item }}"
+      permanent: true
+      state: enabled
+     with_items:
+       - zabbix-agent
+       - zabbix-server
+       - http
+       - https
+       - mysql
+
+   - name: Firewall deploy rules
+     shell: firewall-cmd --reload
+
+   - name: Copy config Mariadb
+     copy:
+      src: ./files/zabbix/zabbix.cnf
+      dest: /etc/my.cnf.d/zabbix.cnf
+      owner: mysql
+      group: mysql
+      mode: '0550'
+
+   - name: Copy config Zabbix server
+     template:
+       src: ./files/zabbix/zabbix_server.conf.j2
+       dest: /etc/zabbix/zabbix_server.conf
+       owner: root
+       group: zabbix
+       mode: '0550'
+
+   - name: Starting the mariaDB
+     service: name=mariadb state=started enabled=yes
+
+   - name: root password is present
+     mysql_user:
+       host=localhost
+       login_user="{user_mysql}"
+       login_password=""
+       user="{user_mysql}"
+       password={{password_mysql}}
+       state=present check_implicit_admin=true
+       priv='*.*:ALL,GRANT'
+     become: true
+
+   # - name: Change root password
+   #   mysql_user:
+   #    login_user: "{{ user_mysql }}"
+   #    name: "{{ user_mysql }}"
+   #    password: "{{ password_mysql }}"
+   #    priv: '*.*:ALL,GRANT'
+   #    state: present
+   #
+   - name: Copy my.cnf user
+     template:
+      src: ./files/zabbix/my.cnf.j2
+      dest: /root/.my.cnf
+      owner: root
+      group: root
+      mode: '0400'
+
+   - name: Removes all anonymous user accounts
+     mysql_user:
+      name: ''
+      host_all: yes
+      state: absent
+
+   - mysql_db: db={{ DBName }} state=present
+
+   - name: Create database user with password and all database privileges and 'WITH GRANT OPTION'
+     mysql_user:
+      name: "{{ DBUser }}"
+      password: "{{ DBPassword }}"
+      priv: 'zabbix.*:ALL,GRANT'
+      state: present
+
+   - name: Create database user with password and all database privileges and 'WITH GRANT OPTION'
+     mysql_user:
+      name: "{{ UserBackup }}"
+      password: "{{ PasswordBackup }}"
+      priv: '*.*:ALL,GRANT'
+      state: present
+
+   # - name: Restore database
+   #   mysql_db:
+   #    name: zabbix
+   #    state: import
+   #    target: /usr/share/doc/zabbix-server-mysql/create.sql.gz
+   - name: Set httpd_can_network_connect flag on and keep it persistent across reboots
+     seboolean:
+      name: httpd_can_connect_zabbix
+      state: yes
+      persistent: yes
+   - name: Set httpd_can_network_connect flag on and keep it persistent across reboots
+     seboolean:
+      name: httpd_can_network_connect_db on
+      state: yes
+      persistent: yes
+
+   - name: Starting the nginx
+     service: name=nginx state=started enabled=yes
+   - name: Starting the zabbix server
+     service: name=zabbix-server state=started enabled=yes
+   - name: Starting the zabbix server
+     service: name=zabbix-agent state=started enabled=yes
+   - name: Starting the php-fpm
+     service: name=php-fpm state=started enabled=yes
